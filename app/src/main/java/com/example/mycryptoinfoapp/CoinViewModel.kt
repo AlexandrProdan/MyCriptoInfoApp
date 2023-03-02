@@ -5,7 +5,9 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import com.example.mycryptoinfoapp.api.ApiFactory
 import com.example.mycryptoinfoapp.db.AppDatabase
-import io.reactivex.android.schedulers.AndroidSchedulers
+import com.example.mycryptoinfoapp.pojo.CoinPriceInfo
+import com.example.mycryptoinfoapp.pojo.CoinPriceInfoRawData
+import com.google.gson.Gson
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 
@@ -18,14 +20,39 @@ class CoinViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadData() {
         val disposable = ApiFactory.apiService.getTopCoinsInfo()
+            .map { it.data?.map { it.coinInfo?.name }?.joinToString(",") }
+            .flatMap { ApiFactory.apiService.getFullPriceList(fSyms = it) }
+            .map { getPriceInfoListFromRawData(it) }
             .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
+                db.coinPriceInfoDAO().insertPriceList(it)
                 Log.d(TAG, "loadData success: ${it.toString()}")
             }, {
                 Log.d(TAG, "loadData error: ${it.message}")
             })
         compositeDisposable.add(disposable)
+    }
+
+    private fun getPriceInfoListFromRawData(coinPriceInfoRawData: CoinPriceInfoRawData): List<CoinPriceInfo> {
+        val result = ArrayList<CoinPriceInfo>()
+
+        val jsonObject = coinPriceInfoRawData.coinPriceInfoJsonObject
+        if (jsonObject == null) return result
+        val coinKeySet = jsonObject.keySet()
+
+        for (conKey in coinKeySet) {
+            val currencyJson = jsonObject.getAsJsonObject(conKey)
+            val currencyKeySet = currencyJson.keySet()
+
+            for (currencyKey in currencyKeySet) {
+                val priceInfo = Gson().fromJson(
+                    currencyJson.getAsJsonObject(currencyKey),
+                    CoinPriceInfo::class.java
+                )
+                result.add(priceInfo)
+            }
+        }
+        return result
     }
 
     override fun onCleared() {
