@@ -3,6 +3,7 @@ package com.example.mycryptoinfoapp
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
 import com.example.mycryptoinfoapp.api.ApiFactory
 import com.example.mycryptoinfoapp.db.AppDatabase
 import com.example.mycryptoinfoapp.pojo.CoinPriceInfo
@@ -10,19 +11,30 @@ import com.example.mycryptoinfoapp.pojo.CoinPriceInfoRawData
 import com.google.gson.Gson
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
+import java.util.concurrent.TimeUnit
 
 class CoinViewModel(application: Application) : AndroidViewModel(application) {
-    private val TAG: String = "CoinViewModel"
     private val db = AppDatabase.getInstance(application)
     private val compositeDisposable = CompositeDisposable()
 
     val priceList = db.coinPriceInfoDAO().getPriceList()
 
-    fun loadData() {
+    init {
+        loadData()
+    }
+
+    fun getDetailInfo(fSym:String):LiveData<CoinPriceInfo>{
+        return db.coinPriceInfoDAO().getPriceInfoParticularCoin(fSym)
+    }
+
+    private fun loadData() {
         val disposable = ApiFactory.apiService.getTopCoinsInfo()
             .map { it.data?.map { it.coinInfo?.name }?.joinToString(",") }
             .flatMap { ApiFactory.apiService.getFullPriceList(fSyms = it) }
             .map { getPriceInfoListFromRawData(it) }
+            .delaySubscription(60, TimeUnit.SECONDS)
+            .repeat()
+            .retry()
             .subscribeOn(Schedulers.io())
             .subscribe({
                 db.coinPriceInfoDAO().insertPriceList(it)
@@ -58,5 +70,9 @@ class CoinViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         super.onCleared()
         compositeDisposable.dispose()
+    }
+
+    companion object {
+        private const val TAG = "CoinViewModel"
     }
 }

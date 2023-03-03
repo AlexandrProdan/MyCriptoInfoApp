@@ -1,10 +1,8 @@
 package com.example.mycryptoinfoapp.pojo
 
-import androidx.annotation.NonNull
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.google.gson.annotations.Expose
-
 import com.google.gson.annotations.SerializedName
 
 @Entity(tableName = "full_price_list")
@@ -19,10 +17,9 @@ data class CoinPriceInfo (
 
     //==========================
     @PrimaryKey//***************
-    @NonNull
     @SerializedName("FROMSYMBOL")
     @Expose
-    var fromsymbol: String,
+    var fromSymbol: String,
     //==========================
 
     @SerializedName("TOSYMBOL")
