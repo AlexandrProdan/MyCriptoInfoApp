@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">MyCryptoInfoApp</string>
+    <string name="symbols_template"> %s -> %s</string>
+    <string name="last_update_template"> Last update: %s</string>
+    <string name="arrow"><![CDATA[->]]></string>
+    <string name="price_label">Price</string>
+    <string name="min_price_label">Minimum price</string>
+    <string name="max_price_label">Maximum price</string>
+    <string name="last_market_label">Last Market</string>
+    <string name="last_updated_label">Last Update</string>
+    <string name="coin_logo">Coin Logo</string>
 </resources>
